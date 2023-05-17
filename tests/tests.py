@@ -654,7 +654,7 @@ class TaggableManagerTestCase(BaseTaggingTestCase):
         spike = self.pet_model.objects.create(name="Spike")
         spot.tags.add("scary")
         spike.tags.add("fluffy")
-        lookup_kwargs = {"%s__name" % self.pet_model._meta.model_name: "Spot"}
+        lookup_kwargs = {f"{self.pet_model._meta.model_name}__name": "Spot"}
         self.assert_tags_equal(
             self.tag_model.objects.filter(**lookup_kwargs), ["scary"]
         )
@@ -745,7 +745,7 @@ class TaggableManagerTestCase(BaseTaggingTestCase):
         apple.tags.add("1", "2")
         with self.assertNumQueries(2):
             list(self.food_model.objects.prefetch_related("tags").all())
-            join_clause = 'INNER JOIN "%s"' % self.taggeditem_model._meta.db_table
+            join_clause = f'INNER JOIN "{self.taggeditem_model._meta.db_table}"'
             self.assertEqual(
                 connection.queries[-1]["sql"].count(join_clause),
                 1,
