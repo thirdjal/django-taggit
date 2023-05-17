@@ -318,7 +318,7 @@ class ArticleTag(Tag):
         proxy = True
 
     def slugify(self, tag, i=None):
-        slug = "category-%s" % tag.lower()
+        slug = f"category-{tag.lower()}"
 
         if i is not None:
             slug += "-%d" % i
@@ -330,7 +330,7 @@ class ArticleTaggedItem(TaggedItem):
         proxy = True
 
     @classmethod
-    def tag_model(self):
+    def tag_model(cls):
         return ArticleTag
 
 
@@ -342,7 +342,7 @@ class Article(models.Model):
 
 class CustomManager(models.Model):
     class Foo:
-        def __init__(*args, **kwargs):
+        def __init__(self, **kwargs):
             pass
 
     tags = TaggableManager(manager=Foo)

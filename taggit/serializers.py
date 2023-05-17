@@ -99,10 +99,7 @@ class TagListSerializerField(serializers.ListField):
     def to_representation(self, value):
         if not isinstance(value, TagList):
             if not isinstance(value, list):
-                if self.order_by:
-                    tags = value.all().order_by(*self.order_by)
-                else:
-                    tags = value.all()
+                tags = value.all().order_by(*self.order_by) if self.order_by else value.all()
                 value = [tag.name for tag in tags]
             value = TagList(value, pretty_print=self.pretty_print)
 

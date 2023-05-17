@@ -21,10 +21,7 @@ def _parse_tags(tagstring):
     # input, we don't *do* a recall... I mean, we know we only need to
     # split on spaces.
     if "," not in tagstring and '"' not in tagstring:
-        words = list(set(split_strip(tagstring, " ")))
-        words.sort()
-        return words
-
+        return sorted(set(split_strip(tagstring, " ")))
     words = []
     buffer = []
     # Defer splitting of non-quoted sections until we know if there are
@@ -47,8 +44,7 @@ def _parse_tags(tagstring):
                     buffer.append(c)
                     c = next(i)
                 if buffer:
-                    word = "".join(buffer).strip()
-                    if word:
+                    if word := "".join(buffer).strip():
                         words.append(word)
                     buffer = []
                 open_quote = False
@@ -64,15 +60,10 @@ def _parse_tags(tagstring):
                 saw_loose_comma = True
             to_be_split.append("".join(buffer))
     if to_be_split:
-        if saw_loose_comma:
-            delimiter = ","
-        else:
-            delimiter = " "
+        delimiter = "," if saw_loose_comma else " "
         for chunk in to_be_split:
             words.extend(split_strip(chunk, delimiter))
-    words = list(set(words))
-    words.sort()
-    return words
+    return sorted(set(words))
 
 
 def split_strip(string, delimiter=","):
@@ -110,7 +101,7 @@ def _edit_string_for_tags(tags):
     for tag in tags:
         name = tag.name
         if "," in name or " " in name:
-            names.append('"%s"' % name)
+            names.append(f'"{name}"')
         else:
             names.append(name)
     return ", ".join(sorted(names))
@@ -120,7 +111,7 @@ def require_instance_manager(func):
     @wraps(func)
     def inner(self, *args, **kwargs):
         if self.instance is None:
-            raise TypeError("Can't call %s with a non-instance manager" % func.__name__)
+            raise TypeError(f"Can't call {func.__name__} with a non-instance manager")
         return func(self, *args, **kwargs)
 
     return inner

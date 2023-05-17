@@ -45,9 +45,7 @@ class ExtraJoinRestriction:
         if len(self.content_types) == 1:
             extra_where = f"{qn(self.alias)}.{qn(self.col)} = %s"
         else:
-            extra_where = "{}.{} IN ({})".format(
-                qn(self.alias), qn(self.col), ",".join(["%s"] * len(self.content_types))
-            )
+            extra_where = f'{qn(self.alias)}.{qn(self.col)} IN ({",".join(["%s"] * len(self.content_types))})'
         return extra_where, self.content_types
 
     def relabel_aliases(self, change_map):
@@ -66,10 +64,7 @@ class _TaggableManager(models.Manager):
         self.model = model
         self.instance = instance
         self.prefetch_cache_name = prefetch_cache_name
-        if ordering:
-            self.ordering = ordering
-        else:
-            self.ordering = []
+        self.ordering = ordering if ordering else []
 
     def is_cached(self, instance):
         return self.prefetch_cache_name in instance._prefetched_objects_cache
@@ -97,8 +92,7 @@ class _TaggableManager(models.Manager):
         )
         fk = self.through._meta.get_field(fieldname)
         query = {
-            "%s__%s__in"
-            % (self.through.tag_relname(), fk.name): {
+            f"{self.through.tag_relname()}__{fk.name}__in": {
                 obj._get_pk_val() for obj in instances
             }
         }
@@ -144,8 +138,9 @@ class _TaggableManager(models.Manager):
         return self.through.lookup_kwargs(self.instance)
 
     def _remove_prefetched_objects(self):
-        prefetch_cache = getattr(self.instance, "_prefetched_objects_cache", None)
-        if prefetch_cache:
+        if prefetch_cache := getattr(
+            self.instance, "_prefetched_objects_cache", None
+        ):
             prefetch_cache.pop(self.prefetch_cache_name, None)
 
     @require_instance_manager
@@ -210,9 +205,7 @@ class _TaggableManager(models.Manager):
                 str_tags.add(t)
             else:
                 raise ValueError(
-                    "Cannot add {} ({}). Expected {} or str.".format(
-                        t, type(t), type(self.through.tag_model())
-                    )
+                    f"Cannot add {t} ({type(t)}). Expected {type(self.through.tag_model())} or str."
                 )
 
         case_insensitive = getattr(settings, "TAGGIT_CASE_INSENSITIVE", False)
@@ -392,8 +385,9 @@ class _TaggableManager(models.Manager):
             rel_model = remote_field.model
             objs = rel_model._default_manager.filter(
                 **{
-                    "%s__in"
-                    % remote_field.field_name: [r["content_object"] for r in qs]
+                    f"{remote_field.field_name}__in": [
+                        r["content_object"] for r in qs
+                    ]
                 }
             )
             actual_remote_field_name = f.target_field.get_attname()
@@ -483,17 +477,17 @@ class TaggableManager(RelatedField):
         if isinstance(rel.through, str):
             kwargs["through"] = rel.through
         elif not rel.through._meta.auto_created:
-            kwargs["through"] = "{}.{}".format(
-                rel.through._meta.app_label, rel.through._meta.object_name
-            )
+            kwargs[
+                "through"
+            ] = f"{rel.through._meta.app_label}.{rel.through._meta.object_name}"
 
         related_model = rel.model
         if isinstance(related_model, str):
             kwargs["to"] = related_model
         else:
-            kwargs["to"] = "{}.{}".format(
-                related_model._meta.app_label, related_model._meta.object_name
-            )
+            kwargs[
+                "to"
+            ] = f"{related_model._meta.app_label}.{related_model._meta.object_name}"
 
         return name, path, args, kwargs
 
@@ -560,8 +554,7 @@ class TaggableManager(RelatedField):
             "label": capfirst(self.verbose_name),
             "help_text": self.help_text,
             "required": not self.blank,
-        }
-        defaults.update(kwargs)
+        } | kwargs
         return form_class(**defaults)
 
     def value_from_object(self, obj):
@@ -609,21 +602,20 @@ class TaggableManager(RelatedField):
             else:
                 join1infos = linkfield2.reverse_path_infos
                 join2infos = linkfield1.path_infos
+        elif direct:
+            join1infos = linkfield1.get_reverse_path_info(
+                filtered_relation=filtered_relation
+            )
+            join2infos = linkfield2.get_path_info(
+                filtered_relation=filtered_relation
+            )
         else:
-            if direct:
-                join1infos = linkfield1.get_reverse_path_info(
-                    filtered_relation=filtered_relation
-                )
-                join2infos = linkfield2.get_path_info(
-                    filtered_relation=filtered_relation
-                )
-            else:
-                join1infos = linkfield2.get_reverse_path_info(
-                    filtered_relation=filtered_relation
-                )
-                join2infos = linkfield1.get_path_info(
-                    filtered_relation=filtered_relation
-                )
+            join1infos = linkfield2.get_reverse_path_info(
+                filtered_relation=filtered_relation
+            )
+            join2infos = linkfield1.get_path_info(
+                filtered_relation=filtered_relation
+            )
         pathinfos.extend(join1infos)
         pathinfos.extend(join2infos)
         return pathinfos
